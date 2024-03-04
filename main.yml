@@ -1,0 +1,32 @@
+name: Deploy Prometheus and Grafana to monitor kubernetes Cluster
+hosts: localhost
+connection: local
+tasks:
+name: Deploying Prometheus Operator
+  ansible.builtin.shell: kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml --force-conflicts=true --server-side=true
+  register: output_prometheus_operator
+debug: var=output_prometheus_operator.stdout_lines
+
+    
+name: Create and Deploy Role Based Access Control for Prometheus from template
+    ansible.builtin.shell: kubectl apply -f ./prometheus_rbac.yaml
+    register: output_rbac
+debug: var=output_rbac.stdout_lines
+
+    
+name: Deploy Prometheus
+    ansible.builtin.shell: kubectl apply -f ./prometheus_instance.yaml
+    register: output_deploy
+debug: var=output_deploy.stdout_lines
+
+    
+name: Create a ServiceMonitor CRD
+    ansible.builtin.shell: kubectl apply -f ./service_monitor.yaml
+
+    
+name: Deploying Grafana in the kubernetes Cluster
+    ansible.builtin.shell: kubectl create deployment grafana --image=docker.io/grafana/grafana:latest 
+name: Expose Prometheus Port
+  ansible.builtin.shell: kubectl apply -f ./expose_prometheus.yaml
+name: Expose Grafana Port
+ansible.builtin.shell: kubectl expose deployment grafana --port 3000 && kubectl port-forward svc/grafana 3000:3000 --address 0.0.0.0 &
